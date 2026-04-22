@@ -214,12 +214,195 @@
                 });
                 
                 scene.add(eyeSun);
-                marker.visible = false;
             }, undefined, (error) => {
                 console.error("❌ Fehler beim Laden des GLB:", error);
             });
 
-            // Lichter anpassen
+            // 5 Gebäude bei x=-300 laden und platzieren
+            gltfLoader.load('assets/glb/5_buildings_low-poly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 55 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = -300 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ 5 Gebäude bei x=-300 platziert");
+            });
+
+            // Japanisches Apartment bei x=-200 laden und platzieren
+            gltfLoader.load('assets/glb/psx_japanese_apartment.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 55 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = -200 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Japanisches Apartment bei x=-200 platziert");
+            });
+
+            // Japanisches Haus bei x=-130 laden und platzieren
+            gltfLoader.load('assets/glb/psx_japanese_house.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 50 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = -130 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Japanisches Haus bei x=-130 platziert");
+            });
+
+            // Apartment-Gebäude bei x=-70 laden und platzieren
+            gltfLoader.load('assets/glb/psx_-_apartment.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 55 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = -70 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Apartment bei x=-70 platziert");
+            });
+
+            // Nur ein Brooklyn Street Gebäude laden und platzieren
+            gltfLoader.load('assets/glb/brooklyn_street_building_low_poly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 60 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                // Genaue Ausrichtung an der Bürgersteigkante (z=26)
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 0 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                // Platziert die Vorderkante des Modells exakt bei z=26
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Brooklyn Gebäude exakt an der Bürgersteigkante platziert");
+            });
+
+            // Verlassenes Gebäude bei x=70 laden und platzieren
+            gltfLoader.load('assets/glb/abandoned_building_gameready.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 50 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 70 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Verlassenes Gebäude bei x=70 platziert");
+            });
+
+            // Japanischer Laden bei x=140 laden und platzieren
+            gltfLoader.load('assets/glb/old_japanese_store.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 45 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 140 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = Math.PI; // Rotiert, um zur Straße zu zeigen
+                scene.add(model);
+
+                console.log("✅ Japanischer Laden bei x=220 platziert");
+                });
+
+                // --- ANDERE STRASSENSEITE (z=-26) ---
+
+                // Brooklyn Cornerhouse laden und platzieren
+                gltfLoader.load('assets/glb/brooklyn_street_cornerhouse_low_poly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 60 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                const xPos = 0; // Zentral auf der anderen Seite
+                model.position.x = xPos - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                // Platziert die Vorderkante bei z=-26
+                model.position.z = -26 - ((size.z * scale) / 2) + (center.z * scale);
+
+                model.rotation.y = Math.PI; 
+                scene.add(model);
+                console.log("✅ Brooklyn Cornerhouse auf der anderen Seite platziert");
+                });
+
+                // Brooklyn Gebäude mehrfach daneben platzieren
+                gltfLoader.load('assets/glb/brooklyn_street_building_low_poly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 60 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                const zOffset = -26 - ((size.z * scale) / 2) + (center.z * scale);
+
+                function addBrooklynOtherSide(x) {
+                    const clone = model.clone();
+                    clone.position.set(x - (center.x * scale), 0.06 - (box.min.y * scale), zOffset);
+                    clone.rotation.y = Math.PI;
+                    scene.add(clone);
+                }
+
+                // Gebäude links und rechts vom Cornerhouse (x=0) platzieren
+                addBrooklynOtherSide(-65);
+                addBrooklynOtherSide(-130);
+                addBrooklynOtherSide(65);
+                addBrooklynOtherSide(130);
+
+                console.log("✅ Mehrere Brooklyn Gebäude auf der anderen Seite platziert");
+                });
+
+                // Lichter anpassen
             scene.add(new THREE.AmbientLight(0xffffff, 0.45)); 
             scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.55)); 
             
@@ -270,16 +453,6 @@
             createMountainWall(0, mapHalf, Math.PI, 1450);
             createMountainWall(mapHalf, 0, Math.PI/2, 1450);
             createMountainWall(-mapHalf, 0, -Math.PI/2, 1450);
-
-            // Häuser
-            function createHouse(x, z) {
-                const wall = new THREE.Mesh(new THREE.BoxGeometry(18,12,18), new THREE.MeshLambertMaterial({map: wallTexture}));
-                wall.position.set(x, 6, z); scene.add(wall);
-                const roof = new THREE.Mesh(new THREE.ConeGeometry(13,9,4), new THREE.MeshLambertMaterial({map: roofTexture}));
-                roof.position.set(x, 16.5, z); roof.rotation.y = Math.PI/4; scene.add(roof);
-            }
-            createHouse(-90, -130); createHouse(150, -100);
-            createHouse(-160, 190); createHouse(120, 240);
 
             // Pointer Lock
             const blocker = document.getElementById('blocker');
