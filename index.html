@@ -183,14 +183,14 @@
         let grassTexture, wallTexture, roofTexture, roadTexture, sidewalkTexture;
         let sunTexture, moonTexture, bergTexture;
         let ground, road, leftSidewalk, rightSidewalk;
-        let eyeSun;
+        let eyeSun, skyMat, starField;
 
         function init() {
             console.log("🚀 Spiel startet – Zentrales Auge als Sonne");
 
             scene = new THREE.Scene();
             
-            // Realistischer blauer Himmel mit Gradient-Effekt (Skybox-Simulation)
+            // Realistischer Himmel mit Tag/Nacht Gradient
             const vertexShader = `
                 varying vec3 vWorldPosition;
                 void main() {
@@ -211,7 +211,7 @@
                 }
             `;
             const skyGeo = new THREE.SphereGeometry(1000, 32, 15);
-            const skyMat = new THREE.ShaderMaterial({
+            skyMat = new THREE.ShaderMaterial({
                 vertexShader: vertexShader,
                 fragmentShader: fragmentShader,
                 uniforms: {
@@ -224,6 +224,20 @@
             });
             const sky = new THREE.Mesh(skyGeo, skyMat);
             scene.add(sky);
+
+            // Sternenfeld für die Nacht
+            const starGeo = new THREE.BufferGeometry();
+            const starCoords = [];
+            for (let i = 0; i < 5000; i++) {
+                const x = THREE.MathUtils.randFloatSpread(1800);
+                const y = THREE.MathUtils.randFloat(100, 1000);
+                const z = THREE.MathUtils.randFloatSpread(1800);
+                starCoords.push(x, y, z);
+            }
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
+            const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0 });
+            starField = new THREE.Points(starGeo, starMat);
+            scene.add(starField);
 
             scene.fog = new THREE.Fog(0x88bbff, 200, 1500);
 
@@ -575,15 +589,16 @@
                 
                 const sectionWidth = size.x * scale;
                 const mapHalf = 700;
+                const groundY = 0 - (box.min.y * scale); // Snaps to floor
 
                 function addWallLine(startCoord, endCoord, fixedCoord, axis, rotation) {
                     // Start und Ende etwas erweitern, damit Ecken überlappen
                     for (let c = startCoord - sectionWidth; c <= endCoord + sectionWidth; c += sectionWidth) {
                         const clone = wallSection.clone();
                         if (axis === 'x') {
-                            clone.position.set(c, 0.06, fixedCoord);
+                            clone.position.set(c, groundY, fixedCoord);
                         } else {
-                            clone.position.set(fixedCoord, 0.06, c);
+                            clone.position.set(fixedCoord, groundY, c);
                         }
                         clone.rotation.y = rotation;
                         scene.add(clone);
@@ -683,8 +698,30 @@
                 }
             }
 
-            timeOfDay = (timeOfDay + 0.0008) % 1;
+            timeOfDay = (timeOfDay + 0.0004) % 1; // Etwas langsamerer Zyklus
             const isDay = timeOfDay > 0.22 && timeOfDay < 0.72;
+
+            // Smooth Tag/Nacht Übergang für Farben und Licht
+            let mixFactor = 0;
+            if (timeOfDay > 0.15 && timeOfDay < 0.25) mixFactor = (timeOfDay - 0.15) * 10; // Sonnenaufgang
+            else if (timeOfDay >= 0.25 && timeOfDay <= 0.65) mixFactor = 1; // Tag
+            else if (timeOfDay > 0.65 && timeOfDay < 0.75) mixFactor = 1 - (timeOfDay - 0.65) * 10; // Sonnenuntergang
+            else mixFactor = 0; // Nacht
+
+            const dayTop = new THREE.Color(0x0077ff);
+            const dayBottom = new THREE.Color(0xffffff);
+            const nightTop = new THREE.Color(0x000022);
+            const nightBottom = new THREE.Color(0x000044);
+
+            if (skyMat) {
+                skyMat.uniforms.topColor.value.lerpColors(nightTop, dayTop, mixFactor);
+                skyMat.uniforms.bottomColor.value.lerpColors(nightBottom, dayBottom, mixFactor);
+            }
+
+            if (starField) {
+                starField.material.opacity = 1 - mixFactor;
+                starField.rotation.y += delta * 0.02; // Sterne drehen sich leicht
+            }
 
             const hours = Math.floor(timeOfDay * 24);
             const mins = Math.floor((timeOfDay * 24 % 1) * 60);
