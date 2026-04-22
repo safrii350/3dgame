@@ -617,6 +617,26 @@
                 console.log("✅ Distressed Painted Walls als Map-Grenze platziert");
             });
 
+            // --- Schreibtisch mit TV und Mikrowelle außen platzieren ---
+            // Position: näher zum Zentrum (x: 500, z: -400)
+            gltfLoader.load('assets/glb/psx_wooden_table.glb', (gltf) => {
+                const table = gltf.scene;
+                const box = new THREE.Box3().setFromObject(table);
+                const size = box.getSize(new THREE.Vector3());
+                // Tischhöhe realistisch ca. 16
+                const scale = 16 / size.y;
+                table.scale.set(scale, scale, scale);
+                const center = box.getCenter(new THREE.Vector3());
+                // Y-Position so, dass Unterkante (min.y) exakt auf y=8 liegt
+                table.position.set(
+                    500 - center.x * scale,
+                    8 - (box.min.y * scale - (center.y * scale - size.y * scale / 2)),
+                    -400 - center.z * scale
+                );
+                table.rotation.y = Math.PI / 2;
+                scene.add(table);
+            });
+
             // Pointer Lock
             const blocker = document.getElementById('blocker');
             blocker.addEventListener('click', () => renderer.domElement.requestPointerLock());
