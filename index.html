@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Person Walking Simulator</title>
+    <style>
+        body { margin:0; overflow:hidden; font-family:"MS Sans Serif", Arial, sans-serif; background:#000; }
+        canvas { display:block; }
+
+        /* ==================== RETRO WINDOWS 2000 STYLE ==================== */
+        .win-window {
+            background: #c0c0c0;
+            border: 2px solid #dfdfdf;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            box-shadow: 3px 3px 0 #00000040;
+            color: #000;
+            font-size: 13px;
+        }
+
+        .win-titlebar {
+            background: linear-gradient(to right, #000080 0%, #1084d0 100%);
+            color: white;
+            padding: 3px 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 24px;
+            border-bottom: 2px solid #dfdfdf;
+        }
+
+        .win-titlebar span {
+            text-shadow: 1px 1px 1px #000080;
+        }
+
+        .win-buttons {
+            display: flex;
+            gap: 2px;
+        }
+
+        .win-btn {
+            width: 18px;
+            height: 18px;
+            background: #c0c0c0;
+            border: 2px solid #dfdfdf;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            font-size: 11px;
+            line-height: 14px;
+            text-align: center;
+            color: #000;
+        }
+
+        .win-content {
+            padding: 12px 14px;
+            background: #c0c0c0;
+            border-top: 2px solid #dfdfdf;
+        }
+
+        /* Kleine Uhr-HUD */
+        #hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 260px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Große Start-HUD (Steuerung) */
+        #blocker {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.92);
+            display:flex; align-items:center; justify-content:center;
+            z-index:200; cursor:pointer;
+        }
+
+        #instructions {
+            width: 520px;
+            max-width: 90vw;
+        }
+
+        #crosshair {
+            position:absolute; top:50%; left:50%; width:26px; height:26px;
+            margin:-13px 0 0 -13px; border:2px solid rgba(255,255,255,0.9);
+            border-radius:50%; pointer-events:none; z-index:300; display:none;
+            font-size:22px; line-height:22px; text-align:center;
+        }
+    </style>
+</head>
+<body>
+    <div id="blocker">
+        <div id="instructions" class="win-window">
+            <div class="win-titlebar">
+                <span>🌍 First Person Walking Simulator</span>
+                <div class="win-buttons">
+                    <div class="win-btn">_</div>
+                    <div class="win-btn">□</div>
+                    <div class="win-btn">×</div>
+                </div>
+            </div>
+            <div class="win-content">
+                <p><strong>Klicke irgendwo auf dieses Fenster zum Starten</strong></p>
+                <p><strong>Steuerung:</strong><br>
+                   WASD → Laufen<br>
+                   Maus → Umschauen<br>
+                   Leertaste → Springen<br>
+                   ESC → Maus freigeben</p>
+                <p style="margin-top:12px; color:#000080; font-size:15px;">
+                    Erkunde die Welt • Tag/Nacht-Zyklus • Dynamische Wolken
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kleine Uhr-HUD -->
+    <div id="hud" class="win-window">
+        <div class="win-titlebar">
+            <span>🕒 Systemzeit</span>
+            <div class="win-buttons">
+                <div class="win-btn">_</div>
+                <div class="win-btn">□</div>
+                <div class="win-btn">×</div>
+            </div>
+        </div>
+        <div class="win-content" style="display:flex; align-items:center; gap:10px;">
+            <strong id="time" style="font-size:22px;">12:00</strong>
+            <span id="dayNight" style="font-size:20px;">☀️ Tag</span>
+        </div>
+    </div>
+
+    <div id="crosshair">✕</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, player;
+        let move = { forward:false, backward:false, left:false, right:false };
+        let velocity = new THREE.Vector3();
+        let controlsEnabled = false;
+        let timeOfDay = 0.3;
+        let yaw = 0;
+        let pitch = 0;
+        const sensitivity = 0.0022;
+
+        let grassTexture, wallTexture, roofTexture, roadTexture, sidewalkTexture;
+        let skyDayTexture, skyNightTexture, sunTexture, moonTexture, bergTexture;
+        let ground, road, leftSidewalk, rightSidewalk, skyMesh, sunMesh, moonMesh;
+        let clouds = [];
+
+        function init() {
+            console.log("🚀 Spiel startet – Windows 2000 HUDs vollständig");
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x88bbff, 100, 1200);
+
+            player = new THREE.Object3D();
+            player.position.set(0, 12, 40);
+            scene.add(player);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 0, 0);
+            player.add(camera);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const loader = new THREE.TextureLoader();
+
+            // Texturen (mit Logs)
+            grassTexture = loader.load('grass.png', (t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(40,40); if(ground){ ground.material.map = t; ground.material.color.set(0xffffff); ground.material.needsUpdate = true; } console.log('✅ grass.png'); });
+            wallTexture = loader.load('wand.png', () => console.log("✅ wand.png"));
+            roofTexture = loader.load('dach.png', () => console.log("✅ dach.png"));
+            roadTexture = loader.load('road.png', (t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(15,1); if(road){ road.material.map = t; road.material.needsUpdate = true; } console.log('✅ road.png'); });
+            sidewalkTexture = loader.load('bürgersteig.png', (texture) => {
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(60,1);
+                console.log('✅ bürgersteig.png');
+                if(leftSidewalk){ leftSidewalk.material.map = texture; leftSidewalk.material.color.set(0xffffff); leftSidewalk.material.needsUpdate = true; }
+                if(rightSidewalk){ rightSidewalk.material.map = texture; rightSidewalk.material.color.set(0xffffff); rightSidewalk.material.needsUpdate = true; }
+            });
+            skyDayTexture = loader.load('sky.png', () => console.log('✅ sky.png'));
+            skyNightTexture = loader.load('skynacht.png', () => console.log('✅ skynacht.png'));
+            sunTexture = loader.load('sonne.png', () => console.log('✅ sonne.png'));
+            moonTexture = loader.load('moon.jpg', () => console.log('✅ moon.jpg'));
+            bergTexture = loader.load('berg.png', (t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; console.log('✅ berg.png'); });
+
+            // Rest des Spiels (Himmel, Sonne, Mond, Wolken, Berge, etc.)
+            const skyGeo = new THREE.SphereGeometry(900, 64, 64);
+            skyMesh = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ side: THREE.BackSide }));
+            scene.add(skyMesh);
+
+            sunMesh = new THREE.Mesh(new THREE.SphereGeometry(18, 32, 32), new THREE.MeshBasicMaterial({ map: sunTexture }));
+            scene.add(sunMesh);
+
+            moonMesh = new THREE.Mesh(new THREE.SphereGeometry(15, 32, 32), new THREE.MeshBasicMaterial({ map: moonTexture }));
+            scene.add(moonMesh);
+
+            const geo = new THREE.PlaneGeometry(1400, 1400);
+            ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x339933 }));
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            road = new THREE.Mesh(new THREE.PlaneGeometry(1450, 28), new THREE.MeshLambertMaterial({ color: 0x555555 }));
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0.03, 0);
+            scene.add(road);
+
+            const sidewalkGeo = new THREE.PlaneGeometry(1450, 12);
+            leftSidewalk = new THREE.Mesh(sidewalkGeo, new THREE.MeshLambertMaterial({ color: 0xaaaaaa }));
+            leftSidewalk.rotation.x = -Math.PI / 2;
+            leftSidewalk.position.set(0, 0.06, 20);
+            scene.add(leftSidewalk);
+
+            rightSidewalk = new THREE.Mesh(sidewalkGeo, new THREE.MeshLambertMaterial({ color: 0xaaaaaa }));
+            rightSidewalk.rotation.x = -Math.PI / 2;
+            rightSidewalk.position.set(0, 0.06, -20);
+            scene.add(rightSidewalk);
+
+            // Wolken
+            for (let i = 0; i < 18; i++) {
+                const c = new THREE.Mesh(
+                    new THREE.PlaneGeometry(140 + Math.random()*90, 55 + Math.random()*35),
+                    new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.92, side:THREE.DoubleSide, depthWrite:false})
+                );
+                c.rotation.x = -Math.PI / 2;
+                c.position.set(-700 + Math.random()*1400, 110 + Math.random()*70, -700 + Math.random()*1400);
+                c.userData = { speed: 6 + Math.random() * 14 };
+                scene.add(c);
+                clouds.push(c);
+            }
+
+            // Bergmauer
+            const wallHeight = 220;
+            const mapHalf = 700;
+            function createMountainWall(x, z, rot, w) {
+                const wall = new THREE.Mesh(
+                    new THREE.PlaneGeometry(w, wallHeight),
+                    new THREE.MeshLambertMaterial({ map: bergTexture, transparent: true, side: THREE.DoubleSide })
+                );
+                wall.position.set(x, wallHeight/2 - 20, z);
+                wall.rotation.y = rot;
+                scene.add(wall);
+            }
+            createMountainWall(0, -mapHalf, 0, 1450);
+            createMountainWall(0, mapHalf, Math.PI, 1450);
+            createMountainWall(mapHalf, 0, Math.PI/2, 1450);
+            createMountainWall(-mapHalf, 0, -Math.PI/2, 1450);
+
+            // Häuser
+            function createHouse(x, z) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(18,12,18), new THREE.MeshLambertMaterial({map: wallTexture}));
+                wall.position.set(x, 6, z); scene.add(wall);
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(13,9,4), new THREE.MeshLambertMaterial({map: roofTexture}));
+                roof.position.set(x, 16.5, z); roof.rotation.y = Math.PI/4; scene.add(roof);
+            }
+            createHouse(-90, -130); createHouse(150, -100);
+            createHouse(-160, 190); createHouse(120, 240);
+
+            scene.add(new THREE.AmbientLight(0x404040, 0.6));
+            scene.add(new THREE.DirectionalLight(0xffeecc, 1.2));
+
+            // Pointer Lock
+            const blocker = document.getElementById('blocker');
+            blocker.addEventListener('click', () => renderer.domElement.requestPointerLock());
+
+            document.addEventListener('pointerlockchange', () => {
+                controlsEnabled = document.pointerLockElement === renderer.domElement;
+                blocker.style.display = controlsEnabled ? 'none' : 'flex';
+            });
+
+            // Steuerung
+            document.addEventListener('keydown', e => {
+                if (e.code === 'KeyW') move.forward = true;
+                if (e.code === 'KeyS') move.backward = true;
+                if (e.code === 'KeyA') move.left = true;
+                if (e.code === 'KeyD') move.right = true;
+                if (e.code === 'Space' && player.position.y <= 8.01) velocity.y = 18;
+            });
+            document.addEventListener('keyup', e => {
+                if (e.code === 'KeyW') move.forward = false;
+                if (e.code === 'KeyS') move.backward = false;
+                if (e.code === 'KeyA') move.left = false;
+                if (e.code === 'KeyD') move.right = false;
+            });
+
+            document.addEventListener('mousemove', e => {
+                if (!controlsEnabled) return;
+                yaw -= e.movementX * sensitivity;
+                pitch -= e.movementY * sensitivity;
+                pitch = Math.max(-1.4, Math.min(1.4, pitch));
+                player.rotation.y = yaw;
+                camera.rotation.x = pitch;
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            animate();
+        }
+
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+            prevTime = time;
+
+            if (controlsEnabled) {
+                const speed = 140 * delta;
+                const forward = (move.forward ? 1 : 0) - (move.backward ? 1 : 0);
+                const strafe = (move.right ? 1 : 0) - (move.left ? 1 : 0);
+
+                player.translateZ(-forward * speed);
+                player.translateX(strafe * speed);
+
+                velocity.y -= 45 * delta;
+                player.position.y += velocity.y * delta;
+                if (player.position.y < 8) {
+                    player.position.y = 8;
+                    velocity.y = 0;
+                }
+                if (skyMesh) skyMesh.position.copy(player.position);
+            }
+
+            timeOfDay = (timeOfDay + 0.0008) % 1;
+            const isDay = timeOfDay > 0.22 && timeOfDay < 0.72;
+
+            if (skyMesh) {
+                skyMesh.material.map = isDay ? skyDayTexture : skyNightTexture;
+                skyMesh.material.needsUpdate = true;
+            }
+
+            const hours = Math.floor(timeOfDay * 24);
+            const mins = Math.floor((timeOfDay * 24 % 1) * 60);
+            document.getElementById('time').textContent = `${hours.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}`;
+            document.getElementById('dayNight').textContent = isDay ? '☀️ Tag' : '🌙 Nacht';
+
+            const angle = timeOfDay * Math.PI * 2 - Math.PI / 2;
+            const distance = 650;
+
+            if (sunMesh) {
+                sunMesh.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance * 0.7 + 80, Math.sin(angle) * 30);
+                sunMesh.visible = isDay;
+            }
+            if (moonMesh) {
+                const moonAngle = angle + Math.PI;
+                moonMesh.position.set(Math.cos(moonAngle) * distance, Math.sin(moonAngle) * distance * 0.7 + 80, Math.sin(moonAngle) * 30);
+                moonMesh.visible = !isDay;
+            }
+
+            clouds.forEach(cloud => {
+                cloud.position.x += cloud.userData.speed * delta * 5;
+                if (cloud.position.x > 850) cloud.position.x = -850;
+            });
+
+            scene.fog.color.set(isDay ? 0x88bbff : 0x112233);
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
