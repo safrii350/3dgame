@@ -183,7 +183,7 @@
         let grassTexture, wallTexture, roofTexture, roadTexture, sidewalkTexture;
         let sunTexture, moonTexture, bergTexture;
         let ground, road, leftSidewalk, rightSidewalk;
-        let eyeSun, skyMat, starField;
+        let eyeSun, skyMat, starField, ambientLight, hemiLight, sunLight, eyeLight;
 
         function init() {
             console.log("🚀 Spiel startet – Zentrales Auge als Sonne");
@@ -544,15 +544,18 @@
                 });
 
                 // Lichter anpassen
-            scene.add(new THREE.AmbientLight(0xffffff, 0.45)); 
-            scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.55)); 
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+            scene.add(ambientLight);
+
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 0.55);
+            scene.add(hemiLight);
             
             // Gerichtetes Licht für echte Schatten/Sonneneffekt
-            const sunLight = new THREE.DirectionalLight(0xffffee, 0.8);
+            sunLight = new THREE.DirectionalLight(0xffffee, 0.8);
             sunLight.position.set(100, 400, 100);
             scene.add(sunLight);
             
-            const eyeLight = new THREE.PointLight(0xffffff, 1.0, 2000);
+            eyeLight = new THREE.PointLight(0xffffff, 1.0, 2000);
             eyeLight.position.set(0, 350, 0);
             scene.add(eyeLight);
 
@@ -710,13 +713,20 @@
 
             const dayTop = new THREE.Color(0x0077ff);
             const dayBottom = new THREE.Color(0xffffff);
-            const nightTop = new THREE.Color(0x000022);
-            const nightBottom = new THREE.Color(0x000044);
+            const nightTop = new THREE.Color(0x000005); // Fast Schwarz
+            const nightBottom = new THREE.Color(0x000011); // Sehr dunkles Blau
 
             if (skyMat) {
                 skyMat.uniforms.topColor.value.lerpColors(nightTop, dayTop, mixFactor);
                 skyMat.uniforms.bottomColor.value.lerpColors(nightBottom, dayBottom, mixFactor);
+                scene.fog.color.lerpColors(nightTop, dayTop, mixFactor);
             }
+
+            // Lichter dimmen bei Nacht
+            if (ambientLight) ambientLight.intensity = THREE.MathUtils.lerp(0.05, 0.45, mixFactor);
+            if (hemiLight) hemiLight.intensity = THREE.MathUtils.lerp(0.08, 0.55, mixFactor);
+            if (sunLight) sunLight.intensity = THREE.MathUtils.lerp(0, 0.8, mixFactor);
+            if (eyeLight) eyeLight.intensity = THREE.MathUtils.lerp(0.3, 1.0, mixFactor);
 
             if (starField) {
                 starField.material.opacity = 1 - mixFactor;
