@@ -619,23 +619,7 @@
 
             // --- Schreibtisch mit TV und Mikrowelle außen platzieren ---
             // Position: näher zum Zentrum (x: 500, z: -400) – Computer Serial statt Tisch
-            gltfLoader.load('assets/glb/computer_lain.glb', (gltf) => {
-                const computer = gltf.scene;
-                const box = new THREE.Box3().setFromObject(computer);
-                const size = box.getSize(new THREE.Vector3());
-                // Computerhöhe realistisch ca. 7
-                const scale = 7 / size.y;
-                computer.scale.set(scale, scale, scale);
-                const center = box.getCenter(new THREE.Vector3());
-                // Y-Position: Unterkante (min.y) exakt auf y=8
-                computer.position.set(
-                    500 - center.x * scale,
-                    8 - box.min.y * scale,
-                    -400 - center.z * scale
-                );
-                computer.rotation.y = Math.PI / 2;
-                scene.add(computer);
-            });
+
 
             // Pointer Lock
             const blocker = document.getElementById('blocker');
