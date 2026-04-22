@@ -38,7 +38,7 @@ Dieses Dokument beschreibt die **Ausgangslage**, die **Ziele**, die **Zielarchit
 ├── styles.css            # Retro-Windows-HUD und Layout
 ├── js/
 │   ├── constants.js      # WS.CONFIG, WS.VERSION
-│   ├── buildings-data.js # WS.BUILDINGS — Pfade, x, Höhe, Straßenseite, Rotation
+│   ├── buildings-data.js # WS.BROOKLYN_ROW_ITEMS, WS.OTHER_ROW_BUILDINGS
 │   ├── gltf-helpers.js # Platzierung, Laden der Gebäude-Liste, Auge, Südfassade, Grenzmauer
 │   └── game.js           # State, init(), animate(), Input, Texturen, Lichter, Boden
 └── assets/
@@ -66,7 +66,7 @@ Nach Änderungen an `js/` oder `index.html`: Phase F kurz ausführen (siehe `AGE
 ## 5. Technische Notizen
 
 - **Global `THREE`**: Skripte nach `three.min.js` und `GLTFLoader.js` laden; kein ES-Module-Bundle erforderlich.
-- **Namespace `WS`**: `window.WS` bündelt `CONFIG`, `BUILDINGS`, optional später `state` — erweiterbar ohne Pollution.
+- **Namespace `WS`**: `window.WS` bündelt `CONFIG`, `OTHER_ROW_BUILDINGS`, optional später `state` — erweiterbar ohne Pollution.
 - **Südfassade (Brooklyn-Reihe)**: Bleibt bewusst in `gltf-helpers.js` gekapselt (Cornerhouse + geklonte Gebäude), da mehrere Instanzen aus einem GLTF entstehen.
 - **Risiken**: Fehlende Asset-Dateien führen weiterhin zu Lade-Fehlern in der Konsole — kein Refactor-Thema, aber beim Test prüfen.
 

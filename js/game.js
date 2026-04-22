@@ -247,12 +247,16 @@
         loadTextures(texLoader);
 
         const gltfLoader = new THREE.GLTFLoader();
-        gltfH.loadEyeSun(gltfLoader, scene, (eye) => {
-            eyeSun = eye;
-        });
-        gltfH.loadStandardBuildings(gltfLoader, scene, window.WS.BUILDINGS);
-        gltfH.loadBrooklynSouthRow(gltfLoader, scene);
-        gltfH.loadBoundaryWalls(gltfLoader, scene);
+        gltfH.loadBrooklynRow(gltfLoader, scene, window.WS.BROOKLYN_ROW_ITEMS);
+        gltfH.loadOtherSideRow(gltfLoader, scene, window.WS.OTHER_ROW_BUILDINGS);
+        if (C.FEATURE_EYE_SUN) {
+            gltfH.loadEyeSun(gltfLoader, scene, (eye) => {
+                eyeSun = eye;
+            });
+        }
+        if (C.FEATURE_BOUNDARY_WALLS) {
+            gltfH.loadBoundaryWalls(gltfLoader, scene);
+        }
 
         bindInput();
         animate();

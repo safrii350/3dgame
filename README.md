@@ -9,7 +9,7 @@ Ein Retro-inspirierter First-Person-Walking-Simulator mit Three.js. Erkunde eine
 | `index.html` | HTML-Shell, lädt Styles und Skripte in der richtigen Reihenfolge |
 | `styles.css` | Retro-Windows-HUD und Layout |
 | `js/constants.js` | `WS.CONFIG` — Spiel- und Weltkonstanten |
-| `js/buildings-data.js` | `WS.BUILDINGS` — Gebäude-Metadaten (Pfad, Position, Höhe) |
+| `js/buildings-data.js` | `WS.BROOKLYN_ROW_ITEMS` (Brooklyn-Seite), `WS.OTHER_ROW_BUILDINGS` (Gegenseite); optional `rotation`, `count` |
 | `js/gltf-helpers.js` | GLB-Platzierung und Speziallasten |
 | `js/game.js` | Hauptlogik: Szene, Loop, Eingaben, Tag/Nacht |
 | `REFACTOR.md` | Refactor-Ziele und Architektur-Notizen |

@@ -1,22 +1,31 @@
 /**
- * Gebäude-Metadaten: ein Eintrag pro GLB-Ladung (Standard-Straßenplatzierung).
- * rotation optional; sonst Default aus Platzierungs-Helper (Nord 0, Süd π).
+ * Brooklyn-Straßenseite: Gruppen aus demselben GLB (count), nacheinander geladen.
+ * Gegenüber: alle übrigen Stadt-GLBs (ohne Auge, ohne Grenzmauer-Segment).
+ *
+ * Optional pro Eintrag: rotation (rad).
  */
 (function (global) {
     'use strict';
     global.WS = global.WS || {};
-    const PI = Math.PI;
 
-    global.WS.BUILDINGS = [
-        { path: 'assets/glb/5_buildings_low-poly.glb', x: -300, height: 55, side: 'north', log: '5 Gebäude bei x=-300 platziert' },
-        { path: 'assets/glb/psx_japanese_apartment.glb', x: -200, height: 55, side: 'north', log: 'Japanisches Apartment bei x=-200 platziert' },
-        { path: 'assets/glb/psx_japanese_house.glb', x: -130, height: 50, side: 'north', log: 'Japanisches Haus bei x=-130 platziert' },
-        { path: 'assets/glb/psx_-_apartment.glb', x: -70, height: 55, side: 'north', log: 'Apartment bei x=-70 platziert' },
-        { path: 'assets/glb/brooklyn_street_building_low_poly.glb', x: 0, height: 60, side: 'north', log: 'Brooklyn Gebäude exakt an der Bürgersteigkante platziert' },
-        { path: 'assets/glb/abandoned_building_gameready.glb', x: 70, height: 50, side: 'north', log: 'Verlassenes Gebäude bei x=70 platziert' },
-        { path: 'assets/glb/old_japanese_store.glb', x: 140, height: 45, side: 'north', rotation: PI, log: 'Japanischer Laden bei x=140 platziert' },
-        { path: 'assets/glb/old_concete_building_pack__lowpoly.glb', x: 330, height: 55, side: 'north', rotation: PI, log: 'Altes Betongebäude bei x=330 platziert' },
-        { path: 'assets/glb/brick_shop_building__lowpoly.glb', x: 440, height: 50, side: 'north', log: 'Brick Shop bei x=440 platziert' },
-        { path: 'assets/glb/free_-_sm_simplebuilding_1a_-_public_domain.glb', x: 550, height: 170, side: 'north', log: 'Einfaches Gebäude bei x=550 verdoppelt' }
+    global.WS.BROOKLYN_ROW_ITEMS = [
+        { path: 'assets/glb/brooklyn_building_grafiti.glb', height: 60, count: 3, rotation: Math.PI / 2 },
+        { path: 'assets/glb/psx_-_apartment.glb', height: 60, count: 1, rotation: Math.PI / 2 },
+        { path: 'assets/glb/brooklyn_street_building_low_poly.glb', height: 65, count: 3 },
+        { path: 'assets/glb/brooklyn_street_cornerhouse_low_poly.glb', height: 65, count: 1 },
+        { path: 'assets/glb/psx_japanese_apartment.glb', height: 65, count: 1, rotation: Math.PI / 2 },
+        { path: 'assets/glb/psx_japanese_house.glb', height: 45, count: 1, rotation: Math.PI / 2 }
+    ];
+
+    global.WS.OTHER_ROW_BUILDINGS = [
+        { path: 'assets/glb/5_buildings_low-poly.glb', height: 68, rotation: 0 },
+        { path: 'assets/glb/abandoned_building_gameready.glb', height: 100 },
+        { path: 'assets/glb/brick_shop_building__lowpoly.glb', height: 50, rotation: 0 },
+        { path: 'assets/glb/old_concete_building_pack__lowpoly.glb', height: 55 },
+        { path: 'assets/glb/old_japanese_store.glb', height: 46, rotation: 0 },
+        { path: 'assets/glb/plattenbau_vergelbt.glb', height: 52, rotation: Math.PI / 2 },
+        { path: 'assets/glb/tower_publichouse.glb', height: 125 },
+        { path: 'assets/glb/toyko19sw_twintower.glb', height: 115, rotation: 0 },
+        { path: 'assets/glb/toyko6sw_tower.glb', height: 125, rotation: 0 }
     ];
 })(typeof window !== 'undefined' ? window : this);

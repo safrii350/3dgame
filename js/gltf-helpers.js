@@ -1,6 +1,5 @@
 /**
- * GLTF-Laden und Platzierung — DRY für Straßengebäude und Spezialfälle.
- * Voraussetzung: global THREE, WS.CONFIG
+ * GLTF-Laden und Platzierung — Straßenreihen mit Front an Bürgersteig (BBox-Kanten).
  */
 (function (global) {
     'use strict';
@@ -11,62 +10,115 @@
     }
 
     /**
-     * Skaliert und platziert ein Root-Objekt entlang Nord- (z+) oder Süd-Bürgersteig (z-).
+     * Skaliert, rotiert und setzt ein Gebäude in eine Reihe: Boden, Front an Bürgersteig, dann X von cursor.
      * @param {THREE.Object3D} model
-     * @param {{ x:number, height:number, side:'north'|'south', rotation?:number }} opts
+     * @param {'north'|'south'} side — north: Front bei min-Z zur Straße; south: Front bei max-Z (nach Rotation).
+     * @param {number} targetHeight — Zielhöhe (Y-Umfang nach Skalierung).
+     * @param {number} gap — Abstand zum nächsten Haus entlang +X.
+     * @param {{ cursorX: number }} state — wird um Gebäudebreite + gap weitergeschoben.
+     * @param {number} [rotationY] — optional, überschreibt Default (Nord 0, Süd π).
      */
-    function placeScaledOnSidewalk(model, opts) {
+    function placeOnSidewalkRow(model, side, targetHeight, gap, state, rotationY) {
         const C = cfg();
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const scale = opts.height / size.y;
+        const box0 = new THREE.Box3().setFromObject(model);
+        const size = box0.getSize(new THREE.Vector3());
+        const scale = targetHeight / size.y;
         model.scale.set(scale, scale, scale);
 
-        const center = box.getCenter(new THREE.Vector3());
-        const sx = size.x * scale;
-        const sy = size.y * scale;
-        const sz = size.z * scale;
-        void sx;
-        void sy;
+        const rot = rotationY !== undefined ? rotationY : (side === 'south' ? Math.PI : 0);
+        model.rotation.y = rot;
+        model.position.set(0, 0, 0);
+        model.updateMatrixWorld(true);
 
-        model.position.x = opts.x - center.x * scale;
-        model.position.y = C.GROUND_SURFACE_EPSILON - box.min.y * scale;
+        let b = new THREE.Box3().setFromObject(model);
+        model.position.y = C.GROUND_SURFACE_EPSILON - b.min.y;
+        model.updateMatrixWorld(true);
+        b = new THREE.Box3().setFromObject(model);
 
-        const cz = center.z * scale;
-        if (opts.side === 'north') {
-            model.position.z = C.SIDEWALK_NORTH_Z + sz / 2 - cz;
+        if (side === 'north') {
+            model.position.z = C.SIDEWALK_NORTH_Z - b.min.z;
         } else {
-            model.position.z = C.SIDEWALK_SOUTH_Z - sz / 2 + cz;
+            model.position.z = C.SIDEWALK_SOUTH_Z - b.max.z;
         }
+        model.updateMatrixWorld(true);
+        b = new THREE.Box3().setFromObject(model);
 
-        if (opts.rotation !== undefined) {
-            model.rotation.y = opts.rotation;
-        } else {
-            model.rotation.y = opts.side === 'south' ? Math.PI : 0;
-        }
+        model.position.x = state.cursorX - b.min.x;
+        model.updateMatrixWorld(true);
+        b = new THREE.Box3().setFromObject(model);
+        state.cursorX = b.max.x + gap;
     }
 
-    function loadStandardBuildings(loader, scene, buildings) {
-        buildings.forEach((b) => {
+    function loadBrooklynRow(loader, scene, rowItems) {
+        const C = cfg();
+        const gap = C.BUILDING_ROW_GAP;
+        const state = { cursorX: C.BUILDING_ROW_START_X };
+        const side = C.BROOKLYN_ROW_SIDE;
+        const rotExtra = C.BROOKLYN_ROW_ROTATION;
+        const items = rowItems || [];
+
+        function loadGroup(index) {
+            if (index >= items.length) {
+                console.log('✅ Brooklyn-Reihe fertig:', items.length, 'GLB-Gruppen');
+                return;
+            }
+            const spec = items[index];
+            const count = spec.count != null ? spec.count : 1;
             loader.load(
-                b.path,
+                spec.path,
                 (gltf) => {
-                    const model = gltf.scene;
-                    placeScaledOnSidewalk(model, b);
-                    scene.add(model);
-                    if (b.log) console.log('✅', b.log);
+                    const template = gltf.scene;
+                    for (let i = 0; i < count; i++) {
+                        const inst = template.clone(true);
+                        placeOnSidewalkRow(inst, side, spec.height, gap, state, spec.rotation != null ? spec.rotation : rotExtra);
+                        scene.add(inst);
+                    }
+                    console.log('✅ Brooklyn', count + '×', spec.path);
+                    loadGroup(index + 1);
                 },
                 undefined,
-                (err) => console.error('❌ GLB', b.path, err)
+                (err) => {
+                    console.error('❌ Brooklyn GLB', spec.path, err);
+                    loadGroup(index + 1);
+                }
             );
-        });
+        }
+
+        loadGroup(0);
     }
 
-    /**
-     * @param {THREE.GLTFLoader} loader
-     * @param {THREE.Scene} scene
-     * @param {(eye: THREE.Object3D) => void} onLoaded
-     */
+    function loadOtherSideRow(loader, scene, buildingList) {
+        const C = cfg();
+        const gap = C.BUILDING_ROW_GAP;
+        const state = { cursorX: C.BUILDING_ROW_START_X };
+        const side = C.OTHER_ROW_SIDE;
+
+        function loadNext(index) {
+            if (index >= buildingList.length) {
+                console.log('✅ Gegenüberreihe fertig:', buildingList.length, 'Gebäude');
+                return;
+            }
+            const spec = buildingList[index];
+            loader.load(
+                spec.path,
+                (gltf) => {
+                    const inst = gltf.scene;
+                    placeOnSidewalkRow(inst, side, spec.height, gap, state, spec.rotation);
+                    scene.add(inst);
+                    console.log('✅ Reihe', index + 1 + '/' + buildingList.length, spec.path);
+                    loadNext(index + 1);
+                },
+                undefined,
+                (err) => {
+                    console.error('❌ GLB', spec.path, err);
+                    loadNext(index + 1);
+                }
+            );
+        }
+
+        loadNext(0);
+    }
+
     function loadEyeSun(loader, scene, onLoaded) {
         const C = cfg();
         loader.load(
@@ -141,44 +193,11 @@
         );
     }
 
-    function loadBrooklynSouthRow(loader, scene) {
-        loader.load('assets/glb/brooklyn_street_cornerhouse_low_poly.glb', (gltf) => {
-            const model = gltf.scene;
-            placeScaledOnSidewalk(model, { x: 0, height: 60, side: 'south', rotation: Math.PI });
-            scene.add(model);
-            console.log('✅ Brooklyn Cornerhouse auf der anderen Seite platziert');
-        });
-
-        loader.load('assets/glb/brooklyn_street_building_low_poly.glb', (gltf) => {
-            const model = gltf.scene;
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const scale = 60 / size.y;
-            model.scale.set(scale, scale, scale);
-            const center = box.getCenter(new THREE.Vector3());
-            const zOffset = C.SIDEWALK_SOUTH_Z - (size.z * scale) / 2 + center.z * scale;
-
-            function addBrooklynOtherSide(x) {
-                const clone = model.clone();
-                clone.position.set(x - center.x * scale, C.GROUND_SURFACE_EPSILON - box.min.y * scale, zOffset);
-                clone.rotation.y = Math.PI;
-                scene.add(clone);
-            }
-
-            addBrooklynOtherSide(-65);
-            addBrooklynOtherSide(-130);
-            addBrooklynOtherSide(65);
-            addBrooklynOtherSide(130);
-
-            console.log('✅ Mehrere Brooklyn Gebäude auf der anderen Seite platziert');
-        });
-    }
-
     global.WS.gltfHelpers = {
-        placeScaledOnSidewalk,
-        loadStandardBuildings,
+        placeOnSidewalkRow,
+        loadBrooklynRow,
+        loadOtherSideRow,
         loadEyeSun,
-        loadBoundaryWalls,
-        loadBrooklynSouthRow
+        loadBoundaryWalls
     };
 })(typeof window !== 'undefined' ? window : this);

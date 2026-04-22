@@ -5,7 +5,7 @@
 (function (global) {
     'use strict';
     global.WS = global.WS || {};
-    global.WS.VERSION = '0.2.0';
+    global.WS.VERSION = '0.4.0';
 
     global.WS.CONFIG = {
         PLAYER_START: { x: 0, y: 12, z: 40 },
@@ -31,6 +31,18 @@
         MAP_HALF: 700,
         BOUNDARY_WALL_HEIGHT: 100,
         BOUNDARY_WALL_PATH: 'assets/glb/distressed_painted_wall_6.4m_section.glb',
+        FEATURE_BOUNDARY_WALLS: true,
+
+        /** Straßenseite für `WS.BROOKLYN_ROW_ITEMS`. Optional: BROOKLYN_ROW_ROTATION (rad) in CONFIG setzen. */
+        BROOKLYN_ROW_SIDE: 'north',
+        /** Abstand zwischen benachbarten Häusern entlang X (Weltkoordinaten). */
+        BUILDING_ROW_GAP: 2,
+        /** Start der Reihe entlang X (lange Straße → weiter nach links). */
+        BUILDING_ROW_START_X: -280,
+        /** Gegenüberliegende Straßenseite für WS.OTHER_ROW_BUILDINGS. */
+        OTHER_ROW_SIDE: 'south',
+
+        FEATURE_EYE_SUN: true,
 
         SKY_RADIUS: 1000,
         SKY_SEGMENTS: 32,
