@@ -69,6 +69,21 @@
             pointer-events: none;
         }
 
+        /* Steuerung-HUD */
+        #controls-hud {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 240px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #controls-hud .win-content p {
+            margin: 4px 0;
+            font-size: 12px;
+        }
+
         /* Große Start-HUD (Steuerung) */
         #blocker {
             position: absolute; top:0; left:0; width:100%; height:100%;
@@ -131,15 +146,35 @@
         </div>
     </div>
 
+    <!-- Steuerung-HUD -->
+    <div id="controls-hud" class="win-window">
+        <div class="win-titlebar">
+            <span>⌨️ Steuerung</span>
+            <div class="win-buttons">
+                <div class="win-btn">_</div>
+                <div class="win-btn">□</div>
+                <div class="win-btn">×</div>
+            </div>
+        </div>
+        <div class="win-content">
+            <p><strong>WASD</strong> → Laufen / Fliegen</p>
+            <p><strong>SPACE</strong> → Springen / Hoch</p>
+            <p><strong>SHIFT</strong> → Runter (Viewer)</p>
+            <p><strong>C</strong> → Viewer Mode AN/AUS</p>
+            <p><strong>ESC</strong> → Maus freigeben</p>
+        </div>
+    </div>
+
     <div id="crosshair">✕</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
         let scene, camera, renderer, player;
-        let move = { forward:false, backward:false, left:false, right:false };
+        let move = { forward:false, backward:false, left:false, right:false, up:false, down:false };
         let velocity = new THREE.Vector3();
         let controlsEnabled = false;
+        let viewerMode = false;
         let timeOfDay = 0.3;
         let yaw = 0;
         let pitch = 0;
@@ -154,8 +189,43 @@
             console.log("🚀 Spiel startet – Zentrales Auge als Sonne");
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x222222); // Dunkelgrau statt Himmel
-            scene.fog = new THREE.Fog(0x222222, 200, 1500);
+            
+            // Realistischer blauer Himmel mit Gradient-Effekt (Skybox-Simulation)
+            const vertexShader = `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+            const fragmentShader = `
+                uniform vec3 topColor;
+                uniform vec3 bottomColor;
+                uniform float offset;
+                uniform float exponent;
+                varying vec3 vWorldPosition;
+                void main() {
+                    float h = normalize(vWorldPosition + offset).y;
+                    gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+                }
+            `;
+            const skyGeo = new THREE.SphereGeometry(1000, 32, 15);
+            const skyMat = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    topColor: { value: new THREE.Color(0x0077ff) },
+                    bottomColor: { value: new THREE.Color(0xffffff) },
+                    offset: { value: 33 },
+                    exponent: { value: 0.6 }
+                },
+                side: THREE.BackSide
+            });
+            const sky = new THREE.Mesh(skyGeo, skyMat);
+            scene.add(sky);
+
+            scene.fog = new THREE.Fog(0x88bbff, 200, 1500);
 
             player = new THREE.Object3D();
             player.position.set(0, 12, 40);
@@ -351,7 +421,64 @@
                 scene.add(model);
 
                 console.log("✅ Japanischer Laden bei x=220 platziert");
-                });
+            });
+
+            // Altes Betongebäude bei x=330 laden und platzieren
+            gltfLoader.load('assets/glb/old_concete_building_pack__lowpoly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 55 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 330 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = Math.PI; // Rotiert, um zur Straße zu zeigen
+                scene.add(model);
+                
+                console.log("✅ Altes Betongebäude bei x=330 platziert");
+            });
+
+            // Brick Shop bei x=440 laden und platzieren
+            gltfLoader.load('assets/glb/brick_shop_building__lowpoly.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 50 / size.y; 
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 440 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Brick Shop bei x=440 platziert");
+            });
+
+            // Einfaches Gebäude bei x=550 laden und platzieren
+            gltfLoader.load('assets/glb/free_-_sm_simplebuilding_1a_-_public_domain.glb', (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 170 / size.y; // Größe verdoppelt von 85 auf 170
+                model.scale.set(scale, scale, scale);
+
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.x = 550 - (center.x * scale);
+                model.position.y = 0.06 - (box.min.y * scale);
+                model.position.z = 26 + ((size.z * scale) / 2) - (center.z * scale);
+
+                model.rotation.y = 0;
+                scene.add(model);
+                
+                console.log("✅ Einfaches Gebäude bei x=550 verdoppelt");
+            });
 
                 // --- ANDERE STRASSENSEITE (z=-26) ---
 
@@ -437,22 +564,40 @@
             rightSidewalk.position.set(0, 0.06, -20);
             scene.add(rightSidewalk);
 
-            // Bergmauer
-            const wallHeight = 220;
-            const mapHalf = 700;
-            function createMountainWall(x, z, rot, w) {
-                const wall = new THREE.Mesh(
-                    new THREE.PlaneGeometry(w, wallHeight),
-                    new THREE.MeshLambertMaterial({ map: bergTexture, transparent: true, side: THREE.DoubleSide })
-                );
-                wall.position.set(x, wallHeight/2 - 20, z);
-                wall.rotation.y = rot;
-                scene.add(wall);
-            }
-            createMountainWall(0, -mapHalf, 0, 1450);
-            createMountainWall(0, mapHalf, Math.PI, 1450);
-            createMountainWall(mapHalf, 0, Math.PI/2, 1450);
-            createMountainWall(-mapHalf, 0, -Math.PI/2, 1450);
+            // Begrenzungswände (Distressed Painted Wall) laden und platzieren
+            gltfLoader.load('assets/glb/distressed_painted_wall_6.4m_section.glb', (gltf) => {
+                const wallSection = gltf.scene;
+                const box = new THREE.Box3().setFromObject(wallSection);
+                const size = box.getSize(new THREE.Vector3());
+                const targetHeight = 100; // Höhe der Außenwände
+                const scale = targetHeight / size.y;
+                wallSection.scale.set(scale, scale, scale);
+                
+                const sectionWidth = size.x * scale;
+                const mapHalf = 700;
+
+                function addWallLine(startCoord, endCoord, fixedCoord, axis, rotation) {
+                    // Start und Ende etwas erweitern, damit Ecken überlappen
+                    for (let c = startCoord - sectionWidth; c <= endCoord + sectionWidth; c += sectionWidth) {
+                        const clone = wallSection.clone();
+                        if (axis === 'x') {
+                            clone.position.set(c, 0.06, fixedCoord);
+                        } else {
+                            clone.position.set(fixedCoord, 0.06, c);
+                        }
+                        clone.rotation.y = rotation;
+                        scene.add(clone);
+                    }
+                }
+
+                // 4 Seiten der Map
+                addWallLine(-mapHalf, mapHalf, -mapHalf, 'x', 0);           // Hinten
+                addWallLine(-mapHalf, mapHalf, mapHalf, 'x', Math.PI);     // Vorne
+                addWallLine(-mapHalf, mapHalf, mapHalf, 'z', -Math.PI / 2); // Rechts
+                addWallLine(-mapHalf, mapHalf, -mapHalf, 'z', Math.PI / 2);  // Links
+
+                console.log("✅ Distressed Painted Walls als Map-Grenze platziert");
+            });
 
             // Pointer Lock
             const blocker = document.getElementById('blocker');
@@ -469,13 +614,26 @@
                 if (e.code === 'KeyS') move.backward = true;
                 if (e.code === 'KeyA') move.left = true;
                 if (e.code === 'KeyD') move.right = true;
-                if (e.code === 'Space' && player.position.y <= 8.01) velocity.y = 18;
+                if (e.code === 'Space') {
+                    if (viewerMode) move.up = true;
+                    else if (player.position.y <= 8.01) velocity.y = 18;
+                }
+                if (e.code === 'ShiftLeft') move.down = true;
+                
+                // Viewer Mode Toggle
+                if (e.code === 'KeyC') {
+                    viewerMode = !viewerMode;
+                    console.log("🎥 Viewer Mode:", viewerMode ? "AN" : "AUS");
+                    velocity.set(0, 0, 0); // Stop movement on toggle
+                }
             });
             document.addEventListener('keyup', e => {
                 if (e.code === 'KeyW') move.forward = false;
                 if (e.code === 'KeyS') move.backward = false;
                 if (e.code === 'KeyA') move.left = false;
                 if (e.code === 'KeyD') move.right = false;
+                if (e.code === 'Space') move.up = false;
+                if (e.code === 'ShiftLeft') move.down = false;
             });
 
             document.addEventListener('mousemove', e => {
@@ -505,18 +663,23 @@
             prevTime = time;
 
             if (controlsEnabled) {
-                const speed = 140 * delta;
+                const speed = (viewerMode ? 300 : 140) * delta;
                 const forward = (move.forward ? 1 : 0) - (move.backward ? 1 : 0);
                 const strafe = (move.right ? 1 : 0) - (move.left ? 1 : 0);
 
                 player.translateZ(-forward * speed);
                 player.translateX(strafe * speed);
 
-                velocity.y -= 45 * delta;
-                player.position.y += velocity.y * delta;
-                if (player.position.y < 8) {
-                    player.position.y = 8;
-                    velocity.y = 0;
+                if (viewerMode) {
+                    const upDown = (move.up ? 1 : 0) - (move.down ? 1 : 0);
+                    player.position.y += upDown * speed;
+                } else {
+                    velocity.y -= 45 * delta;
+                    player.position.y += velocity.y * delta;
+                    if (player.position.y < 8) {
+                        player.position.y = 8;
+                        velocity.y = 0;
+                    }
                 }
             }
 
