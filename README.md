@@ -2,6 +2,19 @@
 
 Ein Retro-inspirierter First-Person-Walking-Simulator mit Three.js. Erkunde eine stilisierte 3D-Stadt mit Tag-/Nachtzyklus, Gebäuden und interaktiver Steuerung im Stil der frühen 2000er.
 
+## Projektstruktur
+
+| Pfad | Rolle |
+|------|--------|
+| `index.html` | HTML-Shell, lädt Styles und Skripte in der richtigen Reihenfolge |
+| `styles.css` | Retro-Windows-HUD und Layout |
+| `js/constants.js` | `WS.CONFIG` — Spiel- und Weltkonstanten |
+| `js/buildings-data.js` | `WS.BUILDINGS` — Gebäude-Metadaten (Pfad, Position, Höhe) |
+| `js/gltf-helpers.js` | GLB-Platzierung und Speziallasten |
+| `js/game.js` | Hauptlogik: Szene, Loop, Eingaben, Tag/Nacht |
+| `REFACTOR.md` | Refactor-Ziele und Architektur-Notizen |
+| `AGENTPROTOCOL.md` | Chronologisches Protokoll und Regeln für Agents/Devs |
+
 ## Features
 - First-Person-Steuerung (WASD, Maus, Space, Shift)
 - Tag-/Nachtzyklus mit dynamischem Himmel und Sternen
@@ -18,7 +31,7 @@ Ein Retro-inspirierter First-Person-Walking-Simulator mit Three.js. Erkunde eine
 - **ESC**: Maus freigeben
 
 ## Assets
-Alle 3D-Modelle liegen im Ordner `assets/glb/` und werden automatisch beim Start geladen. Texturen befinden sich im Projektverzeichnis.
+Alle 3D-Modelle liegen im Ordner `assets/glb/` und werden automatisch beim Start geladen. Texturen liegen unter `assets/textures/` (Pfade in `js/constants.js`, `WS.CONFIG.TEXTURES`).
 
 ## Starten
 1. Projekt lokal klonen:
